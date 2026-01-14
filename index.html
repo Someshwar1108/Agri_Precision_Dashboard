@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <link rel="icon" type="image/png"
+        href="https://uxwing.com/wp-content/themes/uxwing/download/nature-and-environment/leaves-icon.png"
+        sizes="32x32">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agri-Precision Dashboard </title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Supabase SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Google Fonts -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+
+    <!-- SheetJS for Excel/CSV Import -->
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-image: url('https://images.unsplash.com/photo-1625246333195-551e51240f8b?q=80&w=1920&auto=format&fit=crop');
+            background-attachment: fixed;
+            background-size: cover;
+            background-position: center;
+        }
+
+        /* Glassmorphism Overlay */
+        .backdrop-overlay {
+            background-color: rgba(248, 250, 252, 0.9);
+            /* slate-50/90 */
+            backdrop-filter: blur(4px);
+            min-height: 100vh;
+        }
+
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(167, 243, 208, 0.5);
+            /* emerald-100/50 */
+        }
+
+        .card-hover:hover {
+            transform: scale(1.02);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        .font-mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Modal Styles */
+        .modal {
+            transition: opacity 0.25s ease;
+        }
+
+        body.modal-active {
+            overflow-x: hidden;
+            overflow-y: visible !important;
+        }
+    </style>
+</head>
+
+<body class="text-slate-800">
+    <div class="backdrop-overlay">
+
+        <!-- --- HERO HEADER --- -->
+        <header
+            class="relative bg-emerald-900/95 text-white shadow-lg border-b border-emerald-700 backdrop-blur-sm sticky top-0 z-50">
+            <div class="container mx-auto px-4 py-6">
+                <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+                    <div class="text-center md:text-left">
+                        <div class="flex items-center justify-center md:justify-start gap-2 mb-2">
+
+                        </div>
+                        <h1
+                            class="text-3xl md:text-4xl font-extrabold flex items-center justify-center md:justify-start gap-3">
+                            <i class="fa-solid fa-leaf text-emerald-400"></i>
+                            Agri-Precision Dashboard 🚜
+                        </h1>
+                        <p class="text-emerald-200 mt-2 text-lg font-light">
+                            Yield Analysis & Soil Management System
+                        </p>
+                    </div>
+
+                    <!-- Navigation Tabs -->
+                    <div class="flex bg-emerald-800/60 p-1 rounded-lg backdrop-blur-md border border-emerald-600/50">
+                        <button onclick="switchTab('dashboard')" id="btn-dashboard"
+                            class="px-5 py-2 rounded-md flex items-center gap-2 transition-all bg-white text-emerald-900 font-bold shadow">
+                            <i class="fa-solid fa-gauge-high"></i> Analytics
+                        </button>
+                        <button onclick="switchTab('data')" id="btn-data"
+                            class="px-5 py-2 rounded-md flex items-center gap-2 transition-all text-emerald-100 hover:bg-emerald-700/50">
+                            <i class="fa-solid fa-table"></i> Data Registry
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+        <main class="container mx-auto px-4 py-8 pb-32">
+            <!-- VIEW: DASHBOARD -->
+            <div id="view-dashboard" class="space-y-8 animate-fade-in">
+
+                <!-- KPI Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <!-- Avg Efficiency -->
+                    <div
+                        class="glass-panel p-6 rounded-xl shadow-lg flex items-start justify-between card-hover transition-all duration-300">
+                        <div>
+                            <p class="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1">Avg Efficiency</p>
+                            <h4 class="text-3xl font-extrabold text-slate-800" id="kpi-efficiency">-- <span
+                                    class="text-lg text-slate-400 font-normal">Score</span></h4>
+                            <p
+                                class="text-xs text-emerald-600 mt-2 font-medium bg-emerald-50 inline-block px-2 py-1 rounded">
+                                Yield per kg Fertilizer</p>
+                        </div>
+                        <div class="p-3 bg-emerald-50 rounded-lg text-emerald-600">
+                            <i class="fa-solid fa-arrow-trend-up text-xl"></i>
+                        </div>
+                    </div>
+
+                    <!-- Top Yield -->
+                    <div
+                        class="glass-panel p-6 rounded-xl shadow-lg flex items-start justify-between card-hover transition-all duration-300">
+                        <div>
+                            <p class="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1">Top Yield</p>
+                            <h4 class="text-3xl font-extrabold text-slate-800" id="kpi-top-yield">-- <span
+                                    class="text-lg text-slate-400 font-normal">Tons</span></h4>
+                            <p class="text-xs text-blue-600 mt-2 font-medium bg-blue-50 inline-block px-2 py-1 rounded"
+                                id="kpi-top-farmer">Farmer: --</p>
+                        </div>
+                        <div class="p-3 bg-blue-50 rounded-lg text-blue-600">
+                            <i class="fa-solid fa-seedling text-xl"></i>
+                        </div>
+                    </div>
+
+                    <!-- Highest Rainfall -->
+                    <div
+                        class="glass-panel p-6 rounded-xl shadow-lg flex items-start justify-between card-hover transition-all duration-300">
+                        <div>
+                            <p class="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1">Highest Rainfall
+                            </p>
+                            <h4 class="text-3xl font-extrabold text-slate-800" id="kpi-rainfall">-- <span
+                                    class="text-lg text-slate-400 font-normal">mm</span></h4>
+                            <p class="text-xs text-cyan-600 mt-2 font-medium bg-cyan-50 inline-block px-2 py-1 rounded"
+                                id="kpi-rain-loc">Location: --</p>
+                        </div>
+                        <div class="p-3 bg-cyan-50 rounded-lg text-cyan-600">
+                            <i class="fa-solid fa-droplet text-xl"></i>
+                        </div>
+                    </div>
+
+                    <!-- Farmers Tracked -->
+                    <div
+                        class="glass-panel p-6 rounded-xl shadow-lg flex items-start justify-between card-hover transition-all duration-300">
+                        <div>
+                            <p class="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1">Farmers Tracked
+                            </p>
+                            <h4 class="text-3xl font-extrabold text-slate-800" id="kpi-count">0 <span
+                                    class="text-lg text-slate-400 font-normal">Active</span></h4>
+                            <p
+                                class="text-xs text-orange-600 mt-2 font-medium bg-orange-50 inline-block px-2 py-1 rounded">
+                                Database Rows</p>
+                        </div>
+                        <div class="p-3 bg-orange-50 rounded-lg text-orange-600">
+                            <i class="fa-solid fa-tractor text-xl"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Charts Row 1 -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <!-- Bar Chart: Yield by Crop -->
+                    <div class="glass-panel p-6 rounded-xl shadow-lg">
+                        <h3 class="text-lg font-bold text-slate-700 mb-6 flex items-center gap-2">
+                            <i class="fa-solid fa-chart-column text-emerald-600"></i> Average Yield by Crop
+                        </h3>
+                        <div class="h-64">
+                            <canvas id="yieldChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Scatter Chart: Fertilizer vs Yield -->
+                    <div class="glass-panel p-6 rounded-xl shadow-lg">
+                        <h3 class="text-lg font-bold text-slate-700 mb-6 flex items-center gap-2">
+                            <i class="fa-solid fa-arrow-trend-up text-blue-600"></i> Fertilizer Used vs. Yield
+                        </h3>
+                        <div class="h-64">
+                            <canvas id="scatterChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Charts Row 2 -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <!-- Bar Chart: Location Analysis -->
+                    <div class="lg:col-span-2 glass-panel p-6 rounded-xl shadow-lg">
+                        <h3 class="text-lg font-bold text-slate-700 mb-6 flex items-center gap-2">
+                            <i class="fa-solid fa-map-pin text-red-500"></i> Avg Yield by Location
+                        </h3>
+                        <div class="h-80">
+                            <canvas id="locationChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Top Performers List -->
+                    <div class="glass-panel p-6 rounded-xl shadow-lg flex flex-col">
+                        <h3 class="text-lg font-bold text-slate-700 mb-6 flex items-center gap-2">
+                            <i class="fa-solid fa-trophy text-emerald-600"></i> Top Performers
+                        </h3>
+                        <div id="top-performers-list" class="flex-1 space-y-3 overflow-y-auto max-h-80">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Crop Gallery -->
+                <div>
+                    <h3 class="text-xl font-bold text-slate-800 mt-8 mb-4">Crop Gallery</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div
+                            class="relative h-48 rounded-xl overflow-hidden group shadow-lg border-2 border-white/50 cursor-pointer">
+                            <img src="https://static.independent.co.uk/s3fs-public/thumbnails/image/2018/09/10/13/rice-farming-paddies.jpg"
+                                class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                alt="Rice Field">
+                            <div
+                                class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
+                                <h3 class="text-white text-lg font-bold">Rice Fields</h3>
+                                <p class="text-emerald-200 text-xs">High water requirement</p>
+                            </div>
+                        </div>
+                        <div
+                            class="relative h-48 rounded-xl overflow-hidden group shadow-lg border-2 border-white/50 cursor-pointer">
+                            <img src="https://images.unsplash.com/photo-1563514227147-6d2ff665a6a0?q=80&w=600&auto=format&fit=crop"
+                                class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                alt="Maize Field">
+                            <div
+                                class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
+                                <h3 class="text-white text-lg font-bold">Maize Crops</h3>
+                                <p class="text-yellow-200 text-xs">Moderate climate</p>
+                            </div>
+                        </div>
+                        <div
+                            class="relative h-48 rounded-xl overflow-hidden group shadow-lg border-2 border-white/50 cursor-pointer">
+                            <img src="https://images.unsplash.com/photo-1605000797499-95a51c5269ae?auto=format&fit=crop&q=80&w=600"
+                                class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                alt="Cotton Field">
+                            <div
+                                class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
+                                <h3 class="text-white text-lg font-bold">Cotton Farming</h3>
+                                <p class="text-slate-200 text-xs">Black soil suited</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- VIEW: DATA REGISTRY -->
+            <div id="view-data" class="hidden animate-fade-in">
+                <div class="glass-panel rounded-xl shadow-lg overflow-hidden">
+                    <div
+                        class="p-6 border-b border-slate-100 flex flex-col md:flex-row justify-between items-center bg-emerald-50/50 gap-4">
+                        <div>
+                            <h3 class="text-xl font-bold text-slate-800">Field Data Registry</h3>
+                            <p class="text-sm text-slate-500">Live feed from farm sensors and manual entries.</p>
+                        </div>
+                        <input type="file" id="importFile"
+                            accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel"
+                            class="hidden" onchange="handleFileImport(this)">
+
+                        <button onclick="document.getElementById('importFile').click()"
+                            class="bg-white hover:bg-emerald-50 text-emerald-700 border border-emerald-200 px-4 py-2 rounded-lg text-sm font-bold shadow-sm transition-colors flex items-center gap-2">
+                            <i class="fa-solid fa-file-import"></i> Import Excel
+                        </button>
+
+                        <button onclick="openAddModal()"
+                            class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-bold shadow transition-colors flex items-center gap-2">
+                            <i class="fa-solid fa-plus"></i> Add Entry
+                        </button>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm text-slate-600">
+                            <thead class="bg-slate-100/80 text-slate-700 uppercase font-bold text-xs">
+                                <tr>
+                                    <th class="px-6 py-4">ID</th>
+                                    <th class="px-6 py-4">Farmer</th>
+                                    <th class="px-6 py-4">Location</th>
+                                    <th class="px-6 py-4">Crop</th>
+                                    <th class="px-6 py-4">Soil (N-P-K)</th>
+                                    <th class="px-6 py-4">Fert (kg)</th>
+                                    <th class="px-6 py-4">Rain (mm)</th>
+                                    <th class="px-6 py-4 text-right">Yield (tons)</th>
+                                    <th class="px-6 py-4 text-right text-emerald-600">Efficiency</th>
+                                    <th class="px-6 py-4 text-slate-500">Notes</th>
+                                    <th class="px-6 py-4 text-center">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="data-table-body" class="divide-y divide-slate-100">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+
+        <footer
+            class="fixed bottom-0 left-0 w-full bg-emerald-900/95 text-slate-400 py-5 border border-emerald-800 backdrop-blur-sm z-50">
+            <div class="container mx-auto px-4">
+                <div class="flex flex-col md:flex-row justify-between items-center">
+                    <div class="text-center md:text-left mb-1 md:mb-0">
+                        <h4 class="text-white font-bold text-sm inline-block mr-2">Agri-Precision Hub v.2 </h4>
+                        <span class="text-xs opacity-60 hidden md:inline">Integrated Yield Analysis System</span>
+                    </div>
+                    <div class="flex justify-center gap-3 text-xs font-mono text-slate-500">
+                        <span>Python Analysis</span>
+                        <span>•</span>
+                        <span>SQL Database</span>
+                        <span>•</span>
+                        <span>Data Visualization</span>
+                    </div>
+                </div>
+            </div>
+        </footer>
+        <!-- MODAL: ADD NEW ENTRY   -->
+        <div id="addModal" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="modal-title" role="dialog"
+            aria-modal="true">
+            <div class="flex items-end justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+
+                <!-- Background overlay -->
+                <div class="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75 transition-opacity"
+                    aria-hidden="true" onclick="toggleModal('addModal')"></div>
+
+                <!-- Modal panel -->
+                <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+                <div
+                    class="inline-block overflow-hidden text-left align-bottom transition-all transform bg-white rounded-lg shadow-xl sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                    <form id="agriForm">
+                        <!-- Hidden Input for Edit ID -->
+                        <input type="hidden" id="editId" value="">
+
+                        <div class="px-4 pt-5 pb-4 bg-white sm:p-6 sm:pb-4">
+                            <div class="sm:flex sm:items-start">
+                                <div class="w-full mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
+                                    <!-- Dynamic Modal Title -->
+                                    <h3 class="text-lg font-bold leading-6 text-emerald-900" id="modal-title">
+                                        <i class="fa-solid fa-pen-to-square mr-2"></i> Record New Farm Data
+                                    </h3>
+                                    <div class="mt-4 space-y-4">
+                                        <div class="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <label class="block text-xs font-bold text-gray-500 uppercase">Farmer
+                                                    Name</label>
+                                                <input type="text" id="inputName" required
+                                                    class="w-full p-2 border rounded mt-1 focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                                            </div>
+                                            <div>
+                                                <label
+                                                    class="block text-xs font-bold text-gray-500 uppercase">Location</label>
+                                                <input type="text" id="inputLoc" required
+                                                    class="w-full p-2 border rounded mt-1 focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs font-bold text-gray-500 uppercase">Crop
+                                                Type</label>
+                                            <select id="inputCrop"
+                                                class="w-full p-2 border rounded mt-1 focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                                                <option value="Rice">Rice</option>
+                                                <option value="Cotton">Cotton</option>
+                                                <option value="Maize">Maize</option>
+                                                <option value="Wheat">Wheat</option>
+                                            </select>
+                                        </div>
+
+                                        <div class="bg-gray-50 p-3 rounded border border-gray-200">
+                                            <p class="text-xs font-bold text-gray-400 mb-2">SOIL COMPOSITION (N-P-K)</p>
+                                            <div class="grid grid-cols-3 gap-2">
+                                                <input type="number" id="inputN" placeholder="N" required
+                                                    class="w-full p-1 border rounded text-sm text-center">
+                                                <input type="number" id="inputP" placeholder="P" required
+                                                    class="w-full p-1 border rounded text-sm text-center">
+                                                <input type="number" id="inputK" placeholder="K" required
+                                                    class="w-full p-1 border rounded text-sm text-center">
+                                            </div>
+                                        </div>
+
+                                        <div class="grid grid-cols-3 gap-2">
+                                            <div>
+                                                <label
+                                                    class="block text-xs font-bold text-gray-500 uppercase">Fertilizer
+                                                    (kg)</label>
+                                                <input type="number" id="inputFert" required
+                                                    class="w-full p-2 border rounded mt-1 text-sm">
+                                            </div>
+                                            <div>
+                                                <label class="block text-xs font-bold text-gray-500 uppercase">Rain
+                                                    (mm)</label>
+                                                <input type="number" id="inputRain" required
+                                                    class="w-full p-2 border rounded mt-1 text-sm">
+                                            </div>
+                                            <div>
+                                                <label class="block text-xs font-bold text-gray-500 uppercase">Yield
+                                                    (tons)</label>
+                                                <input type="number" step="0.1" id="inputYield" required
+                                                    class="w-full p-2 border rounded mt-1 text-sm font-bold text-emerald-700 bg-emerald-50">
+                                            </div>
+                                        </div>
+
+                                        <!-- Added Notes Field -->
+                                        <div>
+                                            <label class="block text-xs font-bold text-gray-500 uppercase">Field Notes /
+                                                Documentation</label>
+                                            <textarea id="inputNotes"
+                                                class="w-full p-2 border rounded mt-1 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                                                rows="2"
+                                                placeholder="Add observations, pest issues, or other notes..."></textarea>
+                                        </div>
+
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="px-4 py-3 bg-gray-50 sm:px-6 sm:flex sm:flex-row-reverse">
+                            <button type="submit"
+                                class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-emerald-600 text-base font-medium text-white hover:bg-emerald-700 focus:outline-none sm:ml-3 sm:w-auto sm:text-sm">
+                                Save Data
+                            </button>
+                            <button type="button" onclick="toggleModal('addModal')"
+                                class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                                Cancel
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <!-- MODAL: DELETE CONFIRM       -->
+        <div id="deleteModal" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="modal-title"
+            role="dialog" aria-modal="true">
+            <div class="flex items-end justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+                <!-- Overlay -->
+                <div class="fixed inset-0 transition-opacity bg-slate-900 bg-opacity-75 transition-opacity"
+                    aria-hidden="true" onclick="toggleModal('deleteModal')"></div>
+
+                <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+
+                <div
+                    class="inline-block overflow-hidden text-left align-bottom transition-all transform bg-white rounded-lg shadow-xl sm:my-8 sm:align-middle sm:max-w-md sm:w-full border-t-4 border-red-500">
+                    <div class="px-4 pt-5 pb-4 bg-white sm:p-6 sm:pb-4">
+                        <div class="sm:flex sm:items-start">
+                            <div
+                                class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
+                                <i class="fa-solid fa-triangle-exclamation text-red-600"></i>
+                            </div>
+                            <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
+                                <h3 class="text-lg leading-6 font-bold text-slate-900" id="modal-title">Delete Record
+                                </h3>
+                                <div class="mt-2">
+                                    <p class="text-sm text-slate-500">
+                                        Are you sure you want to delete this record? This action cannot be undone.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="px-4 py-3 bg-slate-50 sm:px-6 sm:flex sm:flex-row-reverse gap-2">
+                        <button type="button" onclick="confirmDelete()"
+                            class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none sm:w-auto sm:text-sm">
+                            Yes, Delete
+                        </button>
+                        <button type="button" onclick="toggleModal('deleteModal')"
+                            class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-slate-700 hover:bg-gray-50 focus:outline-none sm:mt-0 sm:w-auto sm:text-sm">
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script src="javascript.js?v=2"></script>
+</body>
+
+</html>
